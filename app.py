@@ -1,82 +1,66 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import streamlit as st
 import numpy as np
 from PIL import Image
-from io import BytesIO
+import tensorflow as tf
 import base64
-from tensorflow.keras.models import load_model
+from io import BytesIO
 import os
 
-# === Konfigurasi Aplikasi ===
-app = Flask(__name__)
-CORS(app)
+# === Load Model ===
+MODEL_PATH = os.path.join("model", "model_restorasi_citra.h5")
 
-# === Path Model ===
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "model", "model_restorasi_citra.h5")
-
-# === Muat Model Restorasi ===
-model = None
-try:
-    model = load_model(MODEL_PATH)
-    print("✅ Model berhasil dimuat dari:", MODEL_PATH)
-except Exception as e:
-    print(f"❌ Gagal memuat model: {e}")
-
-# === Endpoint Utama ===
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({"message": "🧠 API Restorasi Citra Aktif!"})
-
-# === Endpoint Proses Restorasi ===
-@app.route("/restore", methods=["POST"])
-def restore_image():
-    """
-    Menerima file gambar melalui form-data (key: 'file'),
-    lalu mengembalikan hasil restorasi dalam base64.
-    """
-    if "file" not in request.files:
-        return jsonify({"error": "Tidak ada file dikirim"}), 400
-
-    file = request.files["file"]
-
+@st.cache_resource
+def load_restore_model():
     try:
-        # === Baca & Preprocessing Gambar ===
-        img = Image.open(file.stream).convert("RGB")
-        img = img.resize((128, 128))
-        img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-
-        # === Prediksi Restorasi ===
-        if model:
-            restored = model.predict(img_array)[0]
-        else:
-            # fallback sederhana
-            restored = 1 - img_array[0]
-
-        # === Postprocessing ===
-        restored = (restored * 255).astype(np.uint8)
-        restored_img = Image.fromarray(restored)
-
-        # === Konversi ke Base64 ===
-        buffer = BytesIO()
-        restored_img.save(buffer, format="JPEG")
-        buffer.seek(0)
-        encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-        return jsonify({
-            "status": "success",
-            "message": "Restorasi berhasil!",
-            "restored_image": encoded_image
-        })
-
+        model = tf.keras.models.load_model(MODEL_PATH)
+        st.success("✅ Model berhasil dimuat!")
+        return model
     except Exception as e:
-        print("❌ Error:", e)
-        return jsonify({
-            "status": "error",
-            "message": f"Gagal memproses gambar: {e}"
-        }), 500
+        st.error(f"❌ Gagal memuat model: {e}")
+        return None
 
-# === Jalankan Server Lokal ===
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+model = load_restore_model()
+
+# === UI ===
+st.title("🧠 Aplikasi Restorasi Citra")
+st.write("Unggah gambar rusak, dan model akan mencoba merestorasinya.")
+
+uploaded_file = st.file_uploader("Pilih gambar (JPG/PNG):", type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    # Tampilkan gambar asli
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="🖼️ Gambar Asli", use_container_width=True)
+
+    # Tombol proses
+    if st.button("🔧 Proses Restorasi"):
+        with st.spinner("Sedang memproses..."):
+            try:
+                # Preprocessing
+                img = image.resize((128, 128))
+                img_array = np.array(img) / 255.0
+                img_array = np.expand_dims(img_array, axis=0)
+
+                # Prediksi
+                if model:
+                    restored = model.predict(img_array)[0]
+                else:
+                    restored = 1 - img_array[0]  # fallback
+
+                # Postprocessing
+                restored = (restored * 255).astype(np.uint8)
+                restored_img = Image.fromarray(restored)
+
+                # Tampilkan hasil
+                st.image(restored_img, caption="✨ Hasil Restorasi", use_container_width=True)
+
+                # Tombol download
+                buffer = BytesIO()
+                restored_img.save(buffer, format="JPEG")
+                buffer.seek(0)
+                b64 = base64.b64encode(buffer.getvalue()).decode()
+                href = f'<a href="data:file/jpg;base64,{b64}" download="restored.jpg">⬇️ Download Hasil</a>'
+                st.markdown(href, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"Terjadi kesalahan: {e}")
