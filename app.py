@@ -6,55 +6,77 @@ import base64
 from io import BytesIO
 import os
 
-# === Konfigurasi Halaman ===
-st.set_page_config(page_title="🧠 Restorasi Citra Digital", layout="centered")
+# === Konfigurasi halaman ===
+st.set_page_config(
+    page_title="🧠 Restorasi Citra Digital",
+    page_icon="🧠",
+    layout="centered",
+)
 
-# === Load Model ===
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f9fafb;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        max-width: 800px;
+        margin: auto;
+    }
+    h1 {
+        text-align: center;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    p {
+        text-align: center;
+        color: #6b7280;
+    }
+    .stButton>button {
+        background-color: #3b82f6;
+        color: white;
+        border-radius: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #2563eb;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# === Path model ===
 MODEL_PATH = os.path.join("model", "model_restorasi_citra.h5")
 
+# === Load model dengan cache ===
 @st.cache_resource
 def load_restore_model():
-    try:
-        model = tf.keras.models.load_model(MODEL_PATH)
-        st.toast("✅ Model berhasil dimuat!", icon="✅")
-        return model
-    except Exception as e:
-        st.error(f"❌ Gagal memuat model: {e}")
-        return None
+    model = tf.keras.models.load_model(MODEL_PATH)
+    return model
 
-model = load_restore_model()
+try:
+    model = load_restore_model()
+    st.toast("✅ Model berhasil dimuat!")
+except Exception as e:
+    st.error(f"❌ Gagal memuat model: {e}")
+    model = None
 
-# === Custom Tailwind Header ===
-st.markdown("""
-    <head>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
-""", unsafe_allow_html=True)
+# === UI Utama ===
+with st.container():
+    st.markdown('<div class="main">', unsafe_allow_html=True)
 
-# === UI ===
-st.markdown("""
-<div class="text-center mb-6">
-    <h1 class="text-2xl font-semibold text-gray-800">🧠 Restorasi Citra Digital</h1>
-    <p class="text-gray-500 text-sm">Unggah gambar untuk melihat hasil restorasi citra Anda</p>
-</div>
-""", unsafe_allow_html=True)
+    st.title("🧠 Restorasi Citra Digital")
+    st.write("Unggah gambar rusak dan lihat hasil restorasi model AI Anda!")
 
-uploaded_file = st.file_uploader("📤 Unggah Gambar", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Pilih gambar (JPG/PNG):", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
-    # Tampilkan gambar asli
-    image = Image.open(uploaded_file).convert("RGB")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<h3 class="text-center text-gray-700 mb-2">Asli</h3>', unsafe_allow_html=True)
-        st.image(image, use_container_width=True)
-
-    with col2:
-        st.markdown('<h3 class="text-center text-gray-700 mb-2">Hasil</h3>', unsafe_allow_html=True)
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="🖼️ Gambar Asli", use_container_width=True)
 
         if st.button("🔧 Proses Restorasi"):
-            with st.spinner("⏳ Sedang memproses..."):
+            with st.spinner("Sedang memproses..."):
                 try:
                     # Preprocessing
                     img = image.resize((128, 128))
@@ -65,33 +87,24 @@ if uploaded_file:
                     if model:
                         restored = model.predict(img_array)[0]
                     else:
-                        restored = 1 - img_array[0]  # fallback
+                        restored = 1 - img_array[0]  # fallback jika model gagal dimuat
 
                     # Postprocessing
                     restored = (restored * 255).astype(np.uint8)
                     restored_img = Image.fromarray(restored)
 
-                    st.image(restored_img, use_container_width=True)
+                    # Tampilkan hasil
+                    st.image(restored_img, caption="✨ Hasil Restorasi", use_container_width=True)
 
                     # Tombol download
                     buffer = BytesIO()
                     restored_img.save(buffer, format="JPEG")
                     buffer.seek(0)
                     b64 = base64.b64encode(buffer.getvalue()).decode()
-                    href = f'''
-                        <a href="data:file/jpg;base64,{b64}" download="hasil_restorasi.jpg"
-                           class="bg-green-500 text-white px-4 py-2 rounded-lg mt-3 inline-block hover:bg-green-600 transition">
-                           ⬇️ Download Hasil
-                        </a>
-                    '''
+                    href = f'<a href="data:file/jpg;base64,{b64}" download="restored.jpg" style="display:inline-block;margin-top:10px;background-color:#22c55e;color:white;padding:0.6rem 1rem;border-radius:0.5rem;text-decoration:none;">⬇️ Download Hasil</a>'
                     st.markdown(href, unsafe_allow_html=True)
 
                 except Exception as e:
                     st.error(f"Terjadi kesalahan: {e}")
 
-else:
-    st.markdown("""
-    <div class="text-center text-gray-400 text-sm border-2 border-dashed border-gray-300 p-8 rounded-lg">
-        Belum ada gambar diunggah
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
