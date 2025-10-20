@@ -64,8 +64,6 @@ if uploaded_file is not None:
         with col1:
             st.subheader("🖼️ Gambar Asli")
             st.image(image, width=400)  # HAPUS use_column_width, gunakan width saja
-            st.write(f"**Ukuran:** {image.size[0]} x {image.size[1]} pixels")
-            st.write(f"**Mode:** {image.mode}")
 
         # Restoration button - HAPUS use_column_width
         if st.button("🔧 PROSES RESTORASI", type="primary"):
