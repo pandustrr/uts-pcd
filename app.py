@@ -63,12 +63,12 @@ if uploaded_file is not None:
         
         with col1:
             st.subheader("🖼️ Gambar Asli")
-            st.image(image, use_column_width=True)  # PERBAIKAN: ganti use_container_width
+            st.image(image, width=400)  # HAPUS use_column_width, gunakan width saja
             st.write(f"**Ukuran:** {image.size[0]} x {image.size[1]} pixels")
             st.write(f"**Mode:** {image.mode}")
 
-        # Restoration button
-        if st.button("🔧 PROSES RESTORASI", type="primary", use_column_width=True):
+        # Restoration button - HAPUS use_column_width
+        if st.button("🔧 PROSES RESTORASI", type="primary"):
             with st.spinner("🔄 Sedang memproses gambar... Mohon tunggu"):
                 try:
                     # Preprocessing
@@ -80,9 +80,11 @@ if uploaded_file is not None:
                     # Prediction
                     if model:
                         restored_array = model.predict(img_array, verbose=0)[0]
+                        st.success("✅ Restorasi menggunakan model AI berhasil!")
                     else:
-                        # Fallback: return original (dengan beberapa enhancement sederhana)
+                        # Fallback: return original
                         restored_array = img_array[0]
+                        st.info("ℹ️ Menggunakan processing dasar")
 
                     # Postprocessing
                     restored_array = (restored_array * 255).astype(np.uint8)
@@ -93,10 +95,9 @@ if uploaded_file is not None:
 
                     with col2:
                         st.subheader("✨ Hasil Restorasi")
-                        st.image(restored_display, use_column_width=True)  # PERBAIKAN: ganti use_container_width
-                        st.success("✅ Restorasi selesai!")
+                        st.image(restored_display, width=400)  # HAPUS use_column_width, gunakan width
                         
-                        # Download button
+                        # Download button - HAPUS use_column_width
                         buffer = BytesIO()
                         restored_display.save(buffer, format="JPEG", quality=95)
                         buffer.seek(0)
@@ -105,9 +106,7 @@ if uploaded_file is not None:
                             label="⬇️ DOWNLOAD HASIL",
                             data=buffer,
                             file_name="hasil_restorasi.jpg",
-                            mime="image/jpeg",
-                            type="primary",
-                            use_column_width=True
+                            mime="image/jpeg"
                         )
 
                 except Exception as e:
@@ -116,3 +115,13 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"❌ Error memproses gambar: {str(e)}")
 
+# Footer
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: gray;'>
+        🎈 Dibuat dengan Streamlit | Aplikasi Restorasi Citra Digital
+    </div>
+    """,
+    unsafe_allow_html=True
+)
