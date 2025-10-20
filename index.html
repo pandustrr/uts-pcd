@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🧠 Restorasi Citra Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg p-4 sm:p-6">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-1">
+                🧠 Restorasi Citra Digital
+            </h1>
+            <p class="text-sm text-gray-500">
+                Unggah gambar untuk melihat hasil restorasi citra Anda
+            </p>
+        </div>
+
+        <div class="mb-8">
+            <div
+                class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <input type="file" id="upload" accept="image/*" class="hidden" />
+                <label for="upload" class="cursor-pointer block">
+                    <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="mt-2 text-sm text-gray-600">Klik untuk mengunggah gambar</p>
+                </label>
+            </div>
+
+            <div class="flex justify-center flex-wrap gap-3 mt-4">
+                <button id="restore-button"
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm hidden">
+                    Proses Restorasi
+                </button>
+
+                <button id="reset-button"
+                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition text-sm hidden">
+                    Reset
+                </button>
+            </div>
+
+            <p id="loading-text" class="text-center text-gray-500 text-sm mt-3 hidden">⏳ Sedang memproses...</p>
+        </div>
+
+        <!-- Grid Gambar -->
+        <div class="grid grid-cols-2 gap-4 sm:gap-6">
+            <!-- Kolom Gambar Asli -->
+            <div class="text-center">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Asli</h3>
+                <div
+                    class="border rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center max-w-[160px] sm:max-w-none mx-auto">
+                    <img id="original-image" class="w-full h-full object-contain hidden" alt="Gambar Asli" />
+                    <span id="original-placeholder" class="text-gray-400 text-sm">Belum ada gambar</span>
+                </div>
+            </div>
+
+            <!-- Kolom Gambar Hasil -->
+            <div class="text-center">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Hasil</h3>
+                <div
+                    class="border rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center max-w-[160px] sm:max-w-none mx-auto">
+                    <img id="restored-image" class="w-full h-full object-contain hidden" alt="Hasil Restorasi" />
+                    <span id="restored-placeholder" class="text-gray-400 text-sm">Belum diproses</span>
+                </div>
+
+                <a id="download-button"
+                    class="bg-green-500 text-white px-4 py-2 mt-3 rounded-lg hover:bg-green-600 transition text-sm hidden inline-block"
+                    download="hasil_restorasi.jpg">
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="script.js"></script>
+</body>
+
+</html>
