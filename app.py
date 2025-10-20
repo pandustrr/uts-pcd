@@ -2,109 +2,77 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-import base64
-from io import BytesIO
-import os
 
-# === Konfigurasi halaman ===
-st.set_page_config(
-    page_title="🧠 Restorasi Citra Digital",
-    page_icon="🧠",
-    layout="centered",
-)
+# === FUNGSI LOAD MODEL ===
+@st.cache_resource
+def load_restore_model():
+    try:
+        model = tf.keras.models.load_model("model_cnn.h5")
+        return model
+    except Exception as e:
+        # Jangan panggil st.error di dalam fungsi cache!
+        return str(e)
 
+model_result = load_restore_model()
+if isinstance(model_result, str):
+    st.error(f"❌ Gagal memuat model: {model_result}")
+    st.stop()
+else:
+    model = model_result
+
+# === CUSTOM HEADER ===
 st.markdown("""
     <style>
-    .main {
-        background-color: #f9fafb;
-        padding: 2rem;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        max-width: 800px;
-        margin: auto;
-    }
-    h1 {
-        text-align: center;
-        font-weight: 600;
-        color: #1f2937;
-    }
-    p {
-        text-align: center;
-        color: #6b7280;
-    }
-    .stButton>button {
-        background-color: #3b82f6;
-        color: white;
-        border-radius: 0.5rem;
-        padding: 0.6rem 1.2rem;
-        font-weight: 500;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #2563eb;
-    }
+        .main-title {
+            text-align: center;
+            color: white;
+            background-color: #1E3A8A;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .result-box {
+            background-color: #F3F4F6;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# === Path model ===
-MODEL_PATH = os.path.join("model", "model_restorasi_citra.h5")
+st.markdown('<div class="main-title">🔍 Klasifikasi Citra Daun Menggunakan CNN</div>', unsafe_allow_html=True)
+st.write("Unggah gambar daun untuk memprediksi jenisnya.")
 
-# === Load model dengan cache ===
-@st.cache_resource
-def load_restore_model():
-    model = tf.keras.models.load_model(MODEL_PATH)
-    return model
+# === INPUT GAMBAR ===
+uploaded_file = st.file_uploader("📂 Upload gambar daun", type=["jpg", "jpeg", "png"])
 
-try:
-    model = load_restore_model()
-    st.toast("✅ Model berhasil dimuat!")
-except Exception as e:
-    st.error(f"❌ Gagal memuat model: {e}")
-    model = None
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Gambar diunggah", width=300)
 
-# === UI Utama ===
-with st.container():
-    st.markdown('<div class="main">', unsafe_allow_html=True)
+    img_array = image.resize((128, 128))
+    img_array = np.array(img_array) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-    st.title("🧠 Restorasi Citra Digital")
-    st.write("Unggah gambar rusak dan lihat hasil restorasi model AI Anda!")
+    # Prediksi
+    prediction = model.predict(img_array)
+    predicted_class = np.argmax(prediction, axis=1)[0]
 
-    uploaded_file = st.file_uploader("Pilih gambar (JPG/PNG):", type=["jpg", "jpeg", "png"])
+    class_names = ["Daun Jambu", "Daun Pepaya", "Daun Singkong"]
 
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="🖼️ Gambar Asli", use_container_width=True)
+    st.markdown('<div class="result-box">', unsafe_allow_html=True)
+    st.subheader("🌿 Hasil Prediksi")
+    st.write(f"**Jenis Daun:** {class_names[predicted_class]}")
+    st.write(f"**Probabilitas:** {np.max(prediction) * 100:.2f}%")
+    st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.info("Silakan unggah gambar terlebih dahulu.")
 
-        if st.button("🔧 Proses Restorasi"):
-            with st.spinner("Sedang memproses..."):
-                try:
-                    # Preprocessing
-                    img = image.resize((128, 128))
-                    img_array = np.array(img) / 255.0
-                    img_array = np.expand_dims(img_array, axis=0)
-
-                    # Prediksi
-                    if model:
-                        restored = model.predict(img_array)[0]
-                    else:
-                        restored = 1 - img_array[0]  # fallback jika model gagal dimuat
-
-                    # Postprocessing
-                    restored = (restored * 255).astype(np.uint8)
-                    restored_img = Image.fromarray(restored)
-
-                    # Tampilkan hasil
-                    st.image(restored_img, caption="✨ Hasil Restorasi", use_container_width=True)
-
-                    # Tombol download
-                    buffer = BytesIO()
-                    restored_img.save(buffer, format="JPEG")
-                    buffer.seek(0)
-                    b64 = base64.b64encode(buffer.getvalue()).decode()
-                    href = f'<a href="data:file/jpg;base64,{b64}" download="restored.jpg" style="display:inline-block;margin-top:10px;background-color:#22c55e;color:white;padding:0.6rem 1rem;border-radius:0.5rem;text-decoration:none;">⬇️ Download Hasil</a>'
-                    st.markdown(href, unsafe_allow_html=True)
-
-                except Exception as e:
-                    st.error(f"Terjadi kesalahan: {e}")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+# === Footer ===
+st.markdown("""
+    <hr>
+    <div style='text-align:center; color:gray'>
+        <small>Dibuat untuk UTS Pengolahan Citra Digital 🌱</small>
+    </div>
+""", unsafe_allow_html=True)
