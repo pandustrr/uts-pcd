@@ -37,13 +37,13 @@ model = load_restore_model()
 
 # === UI Streamlit ===
 st.title("🧠 Aplikasi Restorasi Citra Digital")
-st.markdown("Unggah gambar yang ingin direstorasi, dan sistem AI akan memperbaikinya.")
+st.markdown("Unggah gambar yang ingin direstorasi, dan sistem akan memperkinya.")
 
 # Informasi status model
 if model:
-    st.success("✅ **Status:** Model AI siap digunakan")
+    st.success("✅ **Status:** Model siap digunakan")
 else:
-    st.warning("⚠️ **Status:** Model tidak tersedia. Gunakan gambar dengan kualitas baik.")
+    st.warning("⚠️ **Status:** Model tidak tersedia. Gunakan gambar dengan kualitas k.")
 
 # Upload section
 st.subheader("📤 Upload Gambar")
@@ -72,7 +72,7 @@ if uploaded_file is not None:
             with st.spinner("🔄 Sedang memproses gambar... Mohon tunggu"):
                 try:
                     # Preprocessing
-                    target_size = (128, 128)  # Sesuai dengan input model
+                    target_size = (128, 128)  # Ses dengan input model
                     img_resized = image.resize(target_size)
                     img_array = np.array(img_resized) / 255.0
                     img_array = np.expand_dims(img_array, axis=0)
@@ -80,7 +80,7 @@ if uploaded_file is not None:
                     # Prediction
                     if model:
                         restored_array = model.predict(img_array, verbose=0)[0]
-                        st.success("✅ Restorasi menggunakan model AI berhasil!")
+                        st.success("✅ Restorasi menggunakan model berhasil!")
                     else:
                         # Fallback: return original
                         restored_array = img_array[0]
