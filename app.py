@@ -63,12 +63,12 @@ if uploaded_file is not None:
         
         with col1:
             st.subheader("🖼️ Gambar Asli")
-            st.image(image, use_container_width=True)
+            st.image(image, use_column_width=True)  # PERBAIKAN: ganti use_container_width
             st.write(f"**Ukuran:** {image.size[0]} x {image.size[1]} pixels")
             st.write(f"**Mode:** {image.mode}")
 
         # Restoration button
-        if st.button("🔧 PROSES RESTORASI", type="primary", use_container_width=True):
+        if st.button("🔧 PROSES RESTORASI", type="primary", use_column_width=True):
             with st.spinner("🔄 Sedang memproses gambar... Mohon tunggu"):
                 try:
                     # Preprocessing
@@ -93,7 +93,7 @@ if uploaded_file is not None:
 
                     with col2:
                         st.subheader("✨ Hasil Restorasi")
-                        st.image(restored_display, use_container_width=True)
+                        st.image(restored_display, use_column_width=True)  # PERBAIKAN: ganti use_container_width
                         st.success("✅ Restorasi selesai!")
                         
                         # Download button
@@ -107,7 +107,7 @@ if uploaded_file is not None:
                             file_name="hasil_restorasi.jpg",
                             mime="image/jpeg",
                             type="primary",
-                            use_container_width=True
+                            use_column_width=True
                         )
 
                 except Exception as e:
@@ -116,13 +116,3 @@ if uploaded_file is not None:
     except Exception as e:
         st.error(f"❌ Error memproses gambar: {str(e)}")
 
-# Footer
-st.markdown("---")
-st.markdown(
-    """
-    <div style='text-align: center; color: gray;'>
-        🎈 Dibuat dengan Streamlit | Aplikasi Restorasi Citra Digital
-    </div>
-    """,
-    unsafe_allow_html=True
-)
