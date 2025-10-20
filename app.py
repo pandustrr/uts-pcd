@@ -2,77 +2,96 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import tensorflow as tf
+import base64
+from io import BytesIO
+import os
 
-# === FUNGSI LOAD MODEL ===
+# === Konfigurasi Halaman ===
+st.set_page_config(page_title="🧠 Restorasi Citra Digital", layout="centered")
+
+# === Load Model ===
+MODEL_PATH = os.path.join("model", "model_restorasi_citra.h5")
+
 @st.cache_resource
 def load_restore_model():
     try:
-        model = tf.keras.models.load_model("model_cnn.h5")
+        model = tf.keras.models.load_model(MODEL_PATH)
+        st.toast("✅ Model berhasil dimuat!", icon="✅")
         return model
     except Exception as e:
-        # Jangan panggil st.error di dalam fungsi cache!
-        return str(e)
+        st.error(f"❌ Gagal memuat model: {e}")
+        return None
 
-model_result = load_restore_model()
-if isinstance(model_result, str):
-    st.error(f"❌ Gagal memuat model: {model_result}")
-    st.stop()
-else:
-    model = model_result
+model = load_restore_model()
 
-# === CUSTOM HEADER ===
+# === Custom Tailwind Header ===
 st.markdown("""
-    <style>
-        .main-title {
-            text-align: center;
-            color: white;
-            background-color: #1E3A8A;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .result-box {
-            background-color: #F3F4F6;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-        }
-    </style>
+    <head>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">🔍 Klasifikasi Citra Daun Menggunakan CNN</div>', unsafe_allow_html=True)
-st.write("Unggah gambar daun untuk memprediksi jenisnya.")
+# === UI ===
+st.markdown("""
+<div class="text-center mb-6">
+    <h1 class="text-2xl font-semibold text-gray-800">🧠 Restorasi Citra Digital</h1>
+    <p class="text-gray-500 text-sm">Unggah gambar untuk melihat hasil restorasi citra Anda</p>
+</div>
+""", unsafe_allow_html=True)
 
-# === INPUT GAMBAR ===
-uploaded_file = st.file_uploader("📂 Upload gambar daun", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📤 Unggah Gambar", type=["jpg", "jpeg", "png"])
 
-if uploaded_file is not None:
+if uploaded_file:
+    # Tampilkan gambar asli
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Gambar diunggah", width=300)
 
-    img_array = image.resize((128, 128))
-    img_array = np.array(img_array) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<h3 class="text-center text-gray-700 mb-2">Asli</h3>', unsafe_allow_html=True)
+        st.image(image, use_container_width=True)
 
-    # Prediksi
-    prediction = model.predict(img_array)
-    predicted_class = np.argmax(prediction, axis=1)[0]
+    with col2:
+        st.markdown('<h3 class="text-center text-gray-700 mb-2">Hasil</h3>', unsafe_allow_html=True)
 
-    class_names = ["Daun Jambu", "Daun Pepaya", "Daun Singkong"]
+        if st.button("🔧 Proses Restorasi"):
+            with st.spinner("⏳ Sedang memproses..."):
+                try:
+                    # Preprocessing
+                    img = image.resize((128, 128))
+                    img_array = np.array(img) / 255.0
+                    img_array = np.expand_dims(img_array, axis=0)
 
-    st.markdown('<div class="result-box">', unsafe_allow_html=True)
-    st.subheader("🌿 Hasil Prediksi")
-    st.write(f"**Jenis Daun:** {class_names[predicted_class]}")
-    st.write(f"**Probabilitas:** {np.max(prediction) * 100:.2f}%")
-    st.markdown("</div>", unsafe_allow_html=True)
+                    # Prediksi
+                    if model:
+                        restored = model.predict(img_array)[0]
+                    else:
+                        restored = 1 - img_array[0]  # fallback
+
+                    # Postprocessing
+                    restored = (restored * 255).astype(np.uint8)
+                    restored_img = Image.fromarray(restored)
+
+                    st.image(restored_img, use_container_width=True)
+
+                    # Tombol download
+                    buffer = BytesIO()
+                    restored_img.save(buffer, format="JPEG")
+                    buffer.seek(0)
+                    b64 = base64.b64encode(buffer.getvalue()).decode()
+                    href = f'''
+                        <a href="data:file/jpg;base64,{b64}" download="hasil_restorasi.jpg"
+                           class="bg-green-500 text-white px-4 py-2 rounded-lg mt-3 inline-block hover:bg-green-600 transition">
+                           ⬇️ Download Hasil
+                        </a>
+                    '''
+                    st.markdown(href, unsafe_allow_html=True)
+
+                except Exception as e:
+                    st.error(f"Terjadi kesalahan: {e}")
+
 else:
-    st.info("Silakan unggah gambar terlebih dahulu.")
-
-# === Footer ===
-st.markdown("""
-    <hr>
-    <div style='text-align:center; color:gray'>
-        <small>Dibuat untuk UTS Pengolahan Citra Digital 🌱</small>
+    st.markdown("""
+    <div class="text-center text-gray-400 text-sm border-2 border-dashed border-gray-300 p-8 rounded-lg">
+        Belum ada gambar diunggah
     </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
